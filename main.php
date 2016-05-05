@@ -5,6 +5,7 @@ require 'settings.php';
 
 use OTE\Utils;
 use OTE\Models;
+use OTE\Business;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
@@ -25,7 +26,9 @@ $roomModel = new Models\RoomModel($dbHelper);
 $roomIds = $roomModel->fetchRoomIds(1623);
 
 $roomUnitModel = new Models\RoomUnitModel($dbHelper);
-$occupancyModel = new Models\OccupancyModel($dbHelper);
+$occupancyModel = new Models\OccupancyModel($dbHelper, $now);
+$analyzer = new Business\Analyzer($now);
+
 $rsyncProperties = [];
 
 foreach($roomIds as $roomId){
@@ -37,7 +40,7 @@ foreach($roomIds as $roomId){
     }
     
     $allocations = $occupancyModel->buildAllocations($roomId, $dates, true);
-    $isValid = $occupancyModel->analyzeAllocations($allocations, true);
+    $isValid = $analyzer->analyzeAllocations($allocations, true);
     
     if (!$isValid){
         $rsyncProperty = $roomModel->fetchProperty($roomId);

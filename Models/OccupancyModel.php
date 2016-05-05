@@ -2,8 +2,6 @@
 
 namespace OTE\Models;
 
-include_once('BaseModel.php');
-
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use OTE\Business;
@@ -13,12 +11,12 @@ class OccupancyModel extends BaseModel
     public static $lowDate = null;
     public static $highDate = null;
     
-    private $now;
+    public $now;
     
-    public function __construct($dbHelper)
+    public function __construct($dbHelper, \DateTime $now)
     {
         parent::__construct($dbHelper);
-        $this->now = new \DateTime();
+        $this->now = $now;
     }
     
     public function fetchDistinctDatesByRoomId($roomId, $minDate = '2016-01-01')
@@ -189,69 +187,6 @@ class OccupancyModel extends BaseModel
         $result = $this->dbHelper->runQuery($sql);        
         $occupiedRoomUnitSummaries = $this->dbHelper->populateObject($result, 'OTE\Business\AllocatedRoomUnitSummary');
         return $occupiedRoomUnitSummaries;
-    }
-    
-    public function analyzeAllocations($allocations, $logMessages = false)
-    {
-        $isValid = true;
-        $now = new \DateTime();
-        
-        $streamHandlerInvalidTotals = new StreamHandler(dirname(__DIR__) . "/tmp/invalid-total-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
-        $positiveLogger = new Logger('positive-allocation');
-        $positiveLogger->pushHandler($streamHandlerInvalidTotals);
-        $negativeLogger = new Logger('negative-allocation');
-        $negativeLogger->pushHandler($streamHandlerInvalidTotals);
-        
-        $streamHandlerMultiRoomUnits = new StreamHandler(dirname(__DIR__) . "/tmp/multi-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
-        $multiAllocationLogger = new Logger('multi-allocation');
-        $multiAllocationLogger->pushHandler($streamHandlerMultiRoomUnits);
-        
-        $streamHandlerWorstPositive = new StreamHandler(dirname(__DIR__) . "/tmp/worst-positive-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
-        $worstPositiveLogger = new Logger('worst-positive-allocation');
-        $worstPositiveLogger->pushHandler($streamHandlerWorstPositive);
-        
-        $streamHandlerWorstNegative = new StreamHandler(dirname(__DIR__) . "/tmp/worst-negative-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
-        $worstNegativeLogger = new Logger('worst-negative-allocation');
-        $worstNegativeLogger->pushHandler($streamHandlerWorstNegative);
-        
-        
-        foreach($allocations as $allocation){
-            if ($allocation->isOverAllocated()){
-                $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
-                $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
-                $logMessages && $positiveLogger->addWarning($message);
-                
-                $isValid = false;
-            }
-            
-            if ($allocation->isUnderAllocated()){
-                $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
-                $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
-                $logMessages && $negativeLogger->addWarning($message);
-                
-                $isValid = false;
-            }
-            
-            if ($allocation->hasRoomUnitsUnderZero() && $allocation->hasRoomUnitsOverZero()){
-                $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
-                $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
-                $logMessages && $multiAllocationLogger->addWarning($message);
-                
-                if ($allocation->isOverAllocated()){
-                    $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
-                    $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
-                    $logMessages && $worstPositiveLogger->addWarning($message);
-                }
-                
-                if ($allocation->isUnderAllocated()){
-                    $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
-                    $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
-                    $logMessages && $worstNegativeLogger->addWarning($message);
-                }
-            }
-        }
-        
-        return $isValid;
     }
     
     public function fixNegativeAllocations($allocations)
