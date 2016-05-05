@@ -189,7 +189,6 @@ class OccupancyModel extends BaseModel
         return $occupiedRoomUnitSummaries;
     }
     
-    
     public function fixNegativeAllocations($allocations)
     {
         $now = new \DateTime();
