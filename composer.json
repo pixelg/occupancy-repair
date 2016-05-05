@@ -1,0 +1,22 @@
+{
+    "name": "ote/occupancy-repair",
+    "require": {
+        "monolog/monolog": "1.0.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.7.*"
+    },
+    "authors": [
+        {
+            "name": "Brent Lee",
+            "email": "brent@opentravelexchange.net"
+        }
+    ],
+    "autoload":{
+        "psr-4": {
+            "OTE\\Utils\\":"Libs/",
+            "OTE\\Models\\":"Models/",
+            "OTE\\Business\\":"Business/"
+        }
+    }
+}
