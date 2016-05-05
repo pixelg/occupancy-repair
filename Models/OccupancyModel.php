@@ -189,20 +189,22 @@ class OccupancyModel extends BaseModel
         return $occupiedRoomUnitSummaries;
     }
     
-    
-    public function fixNegativeAllocations($allocations)
+    public function fixNegativeAllocations($allocationArray)
     {
         $now = new \DateTime();
         
-        $streamHandler = new StreamHandler(dirname(__DIR__) . "/tmp/invalid-total-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
-        $negativeLogger = new Logger('negative-allocation');
+        $streamHandler = new StreamHandler(dirname(__DIR__) . "/tmp/fixed-negative-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
+        $negativeLogger = new Logger('fixed-negative-allocation');
         $negativeLogger->pushHandler($streamHandler);
         
-        foreach($allocations as $allocation){
-            if ($allocation->isUnderAllocated()){
-                $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
-                $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
-                $negativeLogger->addWarning($message);
+        foreach($allocationArray['allocatedRoomUnits'] as $allocatedRoomUnit){
+            if (!$allocatedRoomUnit['isValid']){
+                $sql = sprintf("DELETE FROM occupancies WHERE id = %s AND reservation_id IS NULL", $allocatedRoomUnit['id']);
+                var_export($sql);
+                // $result = $this->dbHelper->runQuery($sql);
+                $message = sprintf("Room: %s | Date: %s",
+                $allocationArray['roomId'], $allocationArray['date']);
+                $negativeLogger->addInfo($message);
             }
         }
     }

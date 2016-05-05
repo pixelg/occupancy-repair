@@ -46,13 +46,27 @@ class Allocation
         return false;
     }
     
-    public function isUnderAllocated()
+    public function isNegativeAllocated()
     {
         if ($this->difference < 0){
             return true;
         }
         
         return false;
+    }
+    
+    public function markNegativeAllocations()
+    {
+        if (!$this->isNegativeAllocated()){
+            return;
+        }
+        
+        $quantity = 0;
+        
+        foreach($this->allocatedRoomUnits as $allocatedRoomUnit){
+            $quantity += $allocatedRoomUnit->quantity;
+            $allocatedRoomUnit->isValid = $quantity >= 0;
+        }    
     }
     
     public function hasRoomUnitsUnderZero()

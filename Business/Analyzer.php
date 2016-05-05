@@ -14,15 +14,15 @@ class Analyzer
         $this->now = $now;
     }
     
-    public function analyzeAllocations($allocations, $logMessages = false)
+    public function analyzeAllocations($allocations, $logMessages = false, $propertyLogger = null, $allocationWriter = null)
     {
-        $isValid = true;
-        
-        $streamHandlerInvalidTotals = new StreamHandler(dirname(__DIR__) . "/tmp/invalid-total-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
-        $positiveLogger = new Logger('positive-allocation');
-        $positiveLogger->pushHandler($streamHandlerInvalidTotals);
+        $streamHandlerNegativeAllocations = new StreamHandler(dirname(__DIR__) . "/tmp/negative-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
         $negativeLogger = new Logger('negative-allocation');
-        $negativeLogger->pushHandler($streamHandlerInvalidTotals);
+        $negativeLogger->pushHandler($streamHandlerNegativeAllocations);
+        
+        $streamHandlerPositiveAllocations = new StreamHandler(dirname(__DIR__) . "/tmp/positive-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
+        $positiveLogger = new Logger('positive-allocation');
+        $positiveLogger->pushHandler($streamHandlerPositiveAllocations);
         
         $streamHandlerMultiRoomUnits = new StreamHandler(dirname(__DIR__) . "/tmp/multi-allocations-{$this->now->format('YmdHis')}.log", Logger::INFO);
         $multiAllocationLogger = new Logger('multi-allocation');
@@ -37,20 +37,21 @@ class Analyzer
         $unitsOverLogger->pushHandler($streamHandlerOver);
         
         foreach($allocations as $allocation){
+            if ($allocation->isNegativeAllocated()){
+                $allocation->markNegativeAllocations();
+                $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
+                $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
+                $logMessages && $negativeLogger->addWarning($message);
+                $propertyLogger && $propertyLogger->addProperty($allocation->roomId);
+                $allocationWriter && $allocationWriter->writeNegativeAllocation($allocation);
+            }
+            
             if ($allocation->isOverAllocated()){
                 $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
                 $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
                 $logMessages && $positiveLogger->addWarning($message);
-                
-                $isValid = false;
-            }
-            
-            if ($allocation->isUnderAllocated()){
-                $message = sprintf($message = sprintf("Room: %s | Date: %s | TotalUnits: %s | Allocated: %s",
-                $allocation->roomId, $allocation->date, $allocation->totalUnits, $allocation->allocated));
-                $logMessages && $negativeLogger->addWarning($message);
-                
-                $isValid = false;
+                $propertyLogger && $propertyLogger->addProperty($allocation->roomId);
+                $allocationWriter && $allocationWriter->writeOverAllocation($allocation);
             }
             
             if ($allocation->hasRoomUnitsUnderZero() && $allocation->hasRoomUnitsOverZero()){
@@ -74,7 +75,5 @@ class Analyzer
                 continue;
             }
         }
-        
-        return $isValid;
     }
 }

@@ -10,14 +10,11 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 $now = new DateTime();
-echo "Start {$now->format('Y-m-d H:i:s')}!\n\n";
+echo "Start Analyzer {$now->format('Y-m-d H:i:s')}\n\n";
 
-$log = new Logger('results');
-$log->pushHandler(new StreamHandler(__DIR__ . "/tmp/results-{$now->format('YmdHis')}.log", Logger::INFO));
+$log = new Logger('analyzer');
+$log->pushHandler(new StreamHandler(__DIR__ . "/tmp/analyzer-{$now->format('YmdHis')}.log", Logger::INFO));
 
-$propertiesLogger = new Logger('properties');
-$propertiesLogger->pushHandler(new StreamHandler(__DIR__ . "/tmp/properties-{$now->format('YmdHis')}.log", Logger::INFO));
-        
 $settings = new Settings();
 $dbHelper = new Utils\MySqlHelper($settings->db['default']);
 $dbHelper->connect();
@@ -28,8 +25,8 @@ $roomIds = $roomModel->fetchRoomIds(1623);
 $roomUnitModel = new Models\RoomUnitModel($dbHelper);
 $occupancyModel = new Models\OccupancyModel($dbHelper, $now);
 $analyzer = new Business\Analyzer($now);
-
-$rsyncProperties = [];
+$propertyLogger = new Business\PropertyLogger($roomModel, $now);
+$allocationWriter = new Business\AllocationWriter($now);
 
 foreach($roomIds as $roomId){
     $dates = $occupancyModel->fetchDistinctDatesByRoomId($roomId, $now->format('Y-m-d'));
@@ -40,19 +37,10 @@ foreach($roomIds as $roomId){
     }
     
     $allocations = $occupancyModel->buildAllocations($roomId, $dates, true);
-    $isValid = $analyzer->analyzeAllocations($allocations, true);
-    
-    if (!$isValid){
-        $rsyncProperty = $roomModel->fetchProperty($roomId);
-        
-        if (empty($rsyncProperties[$rsyncProperty[0]['id']])){
-            $propertiesLogger->info(sprintf("%s | %s | %s | %s", $rsyncProperty[0]['id'], $rsyncProperty[0]['name'], $rsyncProperty[0]['city'], $rsyncProperty[0]['cc_iso']));
-            $rsyncProperties[$rsyncProperty[0]['id']] = $rsyncProperty;
-        }
-    }
+    $analyzer->analyzeAllocations($allocations, true, $propertyLogger, $allocationWriter);
 }
 
-
+$propertyLogger->write();
 $dbHelper->close();
 $now = new DateTime();
-die("Done {$now->format('Y-m-d H:i:s')}!\n\n");
+die("Done Analyzer {$now->format('Y-m-d H:i:s')}\n\n");
