@@ -7,15 +7,15 @@ class Settings
     public $db = [
         'default' => [
             'host' => 'localhost',
-            'user' => 'root',
-            'password' => 'root',
-            'db_name' => 'ote_prod'
+            'user' => '',
+            'password' => '',
+            'db_name' => ''
         ],
         'test' => [
             'host' => 'localhost',
-            'user' => 'root',
-            'password' => 'root',
-            'db_name' => 'occupancy-test'
+            'user' => '',
+            'password' => '',
+            'db_name' => ''
         ]
     ];
 }
