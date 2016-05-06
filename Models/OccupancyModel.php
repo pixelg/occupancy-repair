@@ -200,8 +200,8 @@ class OccupancyModel extends BaseModel
         foreach($allocationArray['allocatedRoomUnits'] as $allocatedRoomUnit){
             if (!$allocatedRoomUnit['isValid']){
                 $sql = sprintf("DELETE FROM occupancies WHERE id = %s AND reservation_id IS NULL", $allocatedRoomUnit['id']);
-                var_export($sql);
-                // $result = $this->dbHelper->runQuery($sql);
+                // var_export($sql);
+                $result = $this->dbHelper->runQuery($sql);
                 $message = sprintf("Room: %s | Date: %s",
                 $allocationArray['roomId'], $allocationArray['date']);
                 $negativeLogger->addInfo($message);
